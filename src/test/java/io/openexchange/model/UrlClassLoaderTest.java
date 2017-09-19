@@ -3,6 +3,7 @@ package io.openexchange.model;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
@@ -61,6 +62,21 @@ public class UrlClassLoaderTest {
                 "Fort Worth", houseClazz.getMethod("getAddress").invoke(house));
         assertEquals("Should be equals",
                 person, houseClazz.getMethod("getOwner").invoke(house));
+    }
+
+    @Test
+    void loadMultipleClassloaders() throws IOException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        ClassLoader classLoaderPerson = new URLClassLoader(new URL[]{temporaryFolder.getRoot().toURI().toURL()});
+
+        Class<?> personClazz = classLoaderPerson.loadClass("io.openexchange.model.Person");
+        Object person = personClazz.getConstructor(String.class, String.class).newInstance("John", "Smith");
+
+        ClassLoader classLoaderHouse = new URLClassLoader(new URL[]{temporaryFolder.getRoot().toURI().toURL()});
+
+        Class<?> houseClazz = classLoaderHouse.loadClass("io.openexchange.model.House");
+        Assertions.assertThrows(NoSuchMethodException.class, () -> {
+            houseClazz.getConstructor(String.class, personClazz).newInstance("Fort Worth", person);
+        });
     }
 
     @AfterEach
